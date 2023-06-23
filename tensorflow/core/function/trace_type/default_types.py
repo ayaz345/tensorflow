@@ -131,10 +131,7 @@ class Literal(trace.TraceType, serialization.Serializable):
     if isinstance(self.value, range):
       return list(self.value)
 
-    if self.value is NanMarker:
-      return float("nan")
-
-    return self.value
+    return float("nan") if self.value is NanMarker else self.value
 
   def _cast(self, value: Any, casting_context: Any) -> Any:
     if self.value is NanMarker and is_nan(value):
@@ -201,10 +198,7 @@ class Weakref(trace.TraceType):
     if self._ref() is None or other._ref() is None:
       return False
 
-    if self._ref() is other._ref():
-      return True
-
-    return self._ref == other._ref
+    return True if self._ref() is other._ref() else self._ref == other._ref
 
   def __hash__(self):
     return self._ref_hash
@@ -291,10 +285,7 @@ class Tuple(trace.TraceType, serialization.Serializable):
     casted_values, was_casted = cast_and_return_whether_casted(
         self.components, value, casting_context
     )
-    if was_casted:
-      return tuple(casted_values)
-    else:
-      return value
+    return tuple(casted_values) if was_casted else value
 
   def __eq__(self, other: Any) -> bool:
     if not isinstance(other, trace.TraceType):
@@ -377,10 +368,7 @@ class List(trace.TraceType, serialization.Serializable):
     casted_values, was_casted = cast_and_return_whether_casted(
         self.components_tuple.components, value, casting_context
     )
-    if was_casted:
-      return list(casted_values)
-    else:
-      return value
+    return list(casted_values) if was_casted else value
 
   def __eq__(self, other: Any) -> bool:
     if not isinstance(other, trace.TraceType):
@@ -514,10 +502,7 @@ class NamedTuple(trace.TraceType, serialization.Serializable):
         [getattr(value, name) for name in self.attribute_names],
         casting_context,
     )
-    if was_casted:
-      return self._placeholder_type(*casted_values)
-    else:
-      return value
+    return self._placeholder_type(*casted_values) if was_casted else value
 
   def __hash__(self) -> int:
     return hash((self.type_name, self.attribute_names, self.attributes))
@@ -653,10 +638,7 @@ class Attrs(trace.TraceType):
         casting_context,
     )
 
-    if was_casted:
-      return self._placeholder_type(*casted_values)
-    else:
-      return value
+    return self._placeholder_type(*casted_values) if was_casted else value
 
   def __hash__(self) -> int:
     return hash(self.named_attributes)
@@ -803,9 +785,7 @@ class Dict(trace.TraceType, serialization.Serializable):
     )
 
     if was_casted:
-      return self._placeholder_type(
-          **{k: v for k, v in zip(self.mapping.keys(), casted_values)}
-      )
+      return self._placeholder_type(**dict(zip(self.mapping.keys(), casted_values)))
     else:
       return value
 
@@ -813,10 +793,7 @@ class Dict(trace.TraceType, serialization.Serializable):
     if not isinstance(other, trace.TraceType):
       return NotImplemented
 
-    if not isinstance(other, Dict):
-      return False
-
-    return self.mapping == other.mapping
+    return False if not isinstance(other, Dict) else self.mapping == other.mapping
 
   def __hash__(self) -> int:
     return hash(frozenset(self.mapping.keys()))

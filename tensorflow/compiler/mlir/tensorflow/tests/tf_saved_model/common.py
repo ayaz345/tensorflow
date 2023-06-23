@@ -90,7 +90,7 @@ def do_test(create_module_fn, exported_names=None, show_debug_info=False):
         mlir, 'canonicalize', show_debug_info
     )
     print(mlir)
-    filename = '%s/result.mlirbc' % save_model_path
+    filename = f'{save_model_path}/result.mlirbc'
     pywrap_mlir.experimental_write_bytecode(filename, mlir)
     if not file_io.file_exists(filename):
       raise app.UsageError('Failed to create bytecode output.')

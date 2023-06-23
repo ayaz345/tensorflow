@@ -147,9 +147,7 @@ class XlaOpsNumericalTest(xla_test.XLATestCase, parameterized.TestCase):
 
   @parameterized.parameters(*PRECISION_VALUES)
   def testConv(self, precision):
-    for dtype in set(self.float_types).intersection(
-        set([dtypes.bfloat16.as_numpy_dtype, np.float32])
-    ):
+    for dtype in set(self.float_types).intersection({dtypes.bfloat16.as_numpy_dtype, np.float32}):
       def conv_1d_fn(lhs, rhs):
         dnums = xla_data_pb2.ConvolutionDimensionNumbers()
         num_spatial_dims = 1
@@ -347,9 +345,7 @@ class XlaOpsNumericalTest(xla_test.XLATestCase, parameterized.TestCase):
     dynamic_size = 7
 
     # XLA doesn't support this for bfloat16.
-    for dtype in set(self.numeric_types).intersection(
-        set([np.int32, np.float32, np.float64, np.complex64])
-    ):
+    for dtype in set(self.numeric_types).intersection({np.int32, np.float32, np.float64, np.complex64}):
       def xla_set_dynamic_dimension_size_fn(x):
         # Tell XLA to cut the array to size=dynamic_size.
         return gen_xla_ops.xla_set_dynamic_dimension_size(
@@ -409,9 +405,7 @@ class XlaOpsNumericalTest(xla_test.XLATestCase, parameterized.TestCase):
     )
 
   def testReduce(self):
-    for dtype in set(self.numeric_types).intersection(
-        set([dtypes.bfloat16.as_numpy_dtype, np.float32])
-    ):
+    for dtype in set(self.numeric_types).intersection({dtypes.bfloat16.as_numpy_dtype, np.float32}):
 
       @function.Defun(dtype, dtype)  # pylint: disable=cell-var-from-loop
       def sum_reducer(x, y):
@@ -468,9 +462,7 @@ class XlaOpsNumericalTest(xla_test.XLATestCase, parameterized.TestCase):
 
   @parameterized.parameters(IS_XLA_VARIADIC_REDUCE_V2)
   def testVariadicReduceKahanSum(self, is_v2):
-    for dtype in set(self.numeric_types).intersection(
-        set([np.float32, np.complex64])
-    ):
+    for dtype in set(self.numeric_types).intersection({np.float32, np.complex64}):
       @def_function.function
       def kahan_sum_reducer(t0, t1):
         (s0, c0), (s1, c1) = t0, t1
@@ -720,9 +712,7 @@ class XlaOpsNumericalTest(xla_test.XLATestCase, parameterized.TestCase):
     )
 
   def testSelectAndScatter(self):
-    for dtype in set(self.numeric_types).intersection(
-        set([dtypes.bfloat16.as_numpy_dtype, np.float32])
-    ):
+    for dtype in set(self.numeric_types).intersection({dtypes.bfloat16.as_numpy_dtype, np.float32}):
 
       @function.Defun(dtype, dtype)  # pylint: disable=cell-var-from-loop
       def add_scatter(x, y):

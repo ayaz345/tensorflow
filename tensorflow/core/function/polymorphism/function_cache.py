@@ -44,8 +44,7 @@ class FunctionCache:
     """Looks up a function based on the context and type."""
     context = context or FunctionContext(None)
     if context in self._dispatch_dict:
-      dispatch_type = self._dispatch_dict[context].dispatch(function_type)
-      if dispatch_type:
+      if dispatch_type := self._dispatch_dict[context].dispatch(function_type):
         return self._primary[(context, dispatch_type)]
 
     return None

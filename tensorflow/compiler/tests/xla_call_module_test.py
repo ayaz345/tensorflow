@@ -64,10 +64,7 @@ class XlaCallModuleOpTest(xla_test.XLATestCase):
     if self.device in ['CPU', 'XLA_CPU']:
       return 'CPU'
     elif self.device in ['GPU', 'XLA_GPU']:
-      if test.is_built_with_rocm():
-        return 'ROCM'
-      else:
-        return 'CUDA'
+      return 'ROCM' if test.is_built_with_rocm() else 'CUDA'
     elif self.device in ['TPU', 'XLA_TPU']:
       return 'TPU'
     else:

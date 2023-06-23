@@ -54,7 +54,7 @@ class MockGenericType(trace.TraceType):
 class MockIntGenericType(MockGenericType):
 
   def most_specific_common_supertype(self, others):
-    if all([self._object == other._object for other in others]):
+    if all(self._object == other._object for other in others):
       return MockIntGenericType(self._object)
     else:
       return None
@@ -63,10 +63,7 @@ class MockIntGenericType(MockGenericType):
 class MockSubtypeOf2(MockGenericType):
 
   def is_subtype_of(self, other):
-    if not isinstance(other, MockGenericType):
-      return False
-
-    return other._object == 2
+    return False if not isinstance(other, MockGenericType) else other._object == 2
 
 
 class MockSupertypes2With3(MockGenericType):
@@ -87,10 +84,8 @@ class MockShape(trace.TraceType):
     if len(self.shape) != len(other.shape):
       return False
 
-    if any(o is not None and s != o for s, o in zip(self.shape, other.shape)):
-      return False
-
-    return True
+    return not any(o is not None and s != o
+                   for s, o in zip(self.shape, other.shape))
 
   def most_specific_common_supertype(self, _):
     raise NotImplementedError
@@ -133,8 +128,7 @@ class MockFunction:
 def make_type(value):
   typing_context = trace_type.InternalTracingContext()
   value_type = trace_type.from_value(value, typing_context)
-  f_type = make_single_param_type(value_type)
-  return f_type
+  return make_single_param_type(value_type)
 
 
 class FunctionCacheTest(test.TestCase):
@@ -306,9 +300,7 @@ class FunctionCacheBenchmark(test.Benchmark):
 
     keys = []
     for i in range(num_total_checks):
-      args = []
-      for j in range(args_per_call):
-        args.append(array_ops.zeros([i, j]))
+      args = [array_ops.zeros([i, j]) for j in range(args_per_call)]
       keys.append(make_type(args))
 
     for key in keys[:-1]:
@@ -356,9 +348,7 @@ class FunctionCacheBenchmark(test.Benchmark):
 
     keys = []
     for i in range(num_total_checks):
-      args = []
-      for j in range(args_per_call):
-        args.append(array_ops.zeros([i, j]))
+      args = [array_ops.zeros([i, j]) for j in range(args_per_call)]
       keys.append(make_type(args))
 
     for key in keys:
@@ -404,9 +394,7 @@ class FunctionCacheBenchmark(test.Benchmark):
 
     keys = []
     for i in range(num_total_checks - 1):
-      args = []
-      for j in range(args_per_call):
-        args.append(array_ops.zeros([i, j]))
+      args = [array_ops.zeros([i, j]) for j in range(args_per_call)]
       keys.append(make_type(args))
 
     for key in keys:

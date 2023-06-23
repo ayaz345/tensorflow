@@ -381,8 +381,7 @@ def benchmark_cublas(dims: MatmulSize) -> MatmulTiming:
   percentiles = triton.testing.do_bench(
       run_matmul, warmup=0, rep=300, quantiles=(0.001, 0.1, 0.5, 0.9)
   )
-  min_ms = percentiles[0]
-  return min_ms
+  return percentiles[0]
 
 
 def _init_matmul_argument(
@@ -444,7 +443,7 @@ def benchmark_matmul(
   for tiling in tilings:
     pbar.update(1)
 
-    timing = benchmark_matmul_tiling(
+    if timing := benchmark_matmul_tiling(
         dims,
         tiling,
         s,
@@ -455,11 +454,8 @@ def benchmark_matmul(
         scratchpad,
         repetitions_ms=repetitions_ms,
         debug=debug,
-    )
-    if not timing:
-      continue
-
-    out.append(timing)
+    ):
+      out.append(timing)
   return out
 
 

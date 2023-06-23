@@ -32,7 +32,7 @@ class TensorFloat32Test(xla_test.XLATestCase):
     config.enable_tensor_float_32_execution(True)
 
   def _test_fn(self, fn, inputs):
-    with ops.device('device:{}:0'.format(self.device)):
+    with ops.device(f'device:{self.device}:0'):
       # Test with TF32 disabled
       config.enable_tensor_float_32_execution(False)
       compiled_fn = def_function.function(fn, jit_compile=True)

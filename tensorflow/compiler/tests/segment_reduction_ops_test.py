@@ -31,10 +31,7 @@ class SegmentReductionOpsTest(xla_test.XLATestCase):
 
   def _findDevice(self, device_name):
     devices = device_lib.list_local_devices()
-    for d in devices:
-      if d.device_type == device_name:
-        return True
-    return False
+    return any(d.device_type == device_name for d in devices)
 
   def _segmentReduction(self, op, data, indices, num_segments):
     with self.session() as sess, self.test_scope():
@@ -202,13 +199,13 @@ class SegmentReductionOpsTest(xla_test.XLATestCase):
               np.array([3, -1, 0, 1, 0, -1, 3], dtype=np.int32), 4))
 
   def testUnsortedSegmentSum1DIndices2DDataDisjoint(self):
+    num_segments = 10
     for dtype in self.numeric_types:
       data = np.array(
           [[0, 1, 2, 3], [20, 21, 22, 23], [30, 31, 32, 33], [40, 41, 42, 43],
            [50, 51, 52, 53]],
           dtype=dtype)
       indices = np.array([8, 1, 0, 3, 7], dtype=np.int32)
-      num_segments = 10
       y = self._unsortedSegmentSum(data, indices, num_segments)
       self.assertAllClose(
           np.array(
@@ -218,13 +215,13 @@ class SegmentReductionOpsTest(xla_test.XLATestCase):
               dtype=dtype), y)
 
   def testUnsortedSegmentSum1DIndices2DDataNonDisjoint(self):
+    num_segments = 4
     for dtype in self.numeric_types:
       data = np.array(
           [[0, 1, 2, 3], [20, 21, 22, 23], [30, 31, 32, 33], [40, 41, 42, 43],
            [50, 51, 52, 53]],
           dtype=dtype)
       indices = np.array([0, 1, 2, 0, 1], dtype=np.int32)
-      num_segments = 4
       y = self._unsortedSegmentSum(data, indices, num_segments)
       self.assertAllClose(
           np.array(
@@ -233,6 +230,7 @@ class SegmentReductionOpsTest(xla_test.XLATestCase):
               dtype=dtype), y)
 
   def testUnsortedSegmentSum2DIndices3DData(self):
+    num_segments = 8
     for dtype in self.numeric_types:
       data = np.array(
           [[[0, 1, 2], [10, 11, 12]], [[100, 101, 102], [110, 111, 112]], [[
@@ -240,7 +238,6 @@ class SegmentReductionOpsTest(xla_test.XLATestCase):
           ], [210, 211, 212]], [[300, 301, 302], [310, 311, 312]]],
           dtype=dtype)
       indices = np.array([[3, 5], [3, 1], [5, 0], [6, 2]], dtype=np.int32)
-      num_segments = 8
       y = self._unsortedSegmentSum(data, indices, num_segments)
       self.assertAllClose(
           np.array(
@@ -250,6 +247,7 @@ class SegmentReductionOpsTest(xla_test.XLATestCase):
               dtype=dtype), y)
 
   def testUnsortedSegmentSum1DIndices3DData(self):
+    num_segments = 6
     for dtype in self.numeric_types:
       data = np.array(
           [[[0, 1, 2], [10, 11, 12]], [[100, 101, 102], [110, 111, 112]], [[
@@ -257,7 +255,6 @@ class SegmentReductionOpsTest(xla_test.XLATestCase):
           ], [210, 211, 212]], [[300, 301, 302], [310, 311, 312]]],
           dtype=dtype)
       indices = np.array([3, 0, 2, 5], dtype=np.int32)
-      num_segments = 6
       y = self._unsortedSegmentSum(data, indices, num_segments)
       self.assertAllClose(
           np.array(
@@ -267,10 +264,10 @@ class SegmentReductionOpsTest(xla_test.XLATestCase):
               dtype=dtype), y)
 
   def testUnsortedSegmentSumShapeError(self):
+    num_segments = 4
     for dtype in self.numeric_types:
       data = np.ones((4, 8, 7), dtype=dtype)
       indices = np.ones((3, 2), dtype=np.int32)
-      num_segments = 4
       self.assertRaises(
           ValueError,
           functools.partial(self._segmentReduction,

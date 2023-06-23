@@ -53,10 +53,10 @@ class Parameter(inspect.Parameter):
     if optional and kind not in [
         self.POSITIONAL_ONLY, self.KEYWORD_ONLY, self.POSITIONAL_OR_KEYWORD
     ]:
-      raise ValueError(
-          "Parameter " + name +
-          " is optional and its kind must be one of {POSITIONAL_ONLY, " +
-          "KEYWORD_ONLY, POSITIONAL_OR_KEYWORD}. Got: " + str(kind))
+      raise ValueError((
+          (f"Parameter {name}" +
+           " is optional and its kind must be one of {POSITIONAL_ONLY, ") +
+          "KEYWORD_ONLY, POSITIONAL_OR_KEYWORD}. Got: ") + str(kind))
 
     if type_constraint and kind in [self.VAR_POSITIONAL, self.VAR_KEYWORD]:
       raise TypeError("Variable args/kwargs can not have type constraints.")
@@ -126,9 +126,8 @@ class Parameter(inspect.Parameter):
           (other.name, other.kind, other.optional)):
         return None
 
-    supertyped_constraint = self.type_constraint.most_specific_common_supertype(
-        [other.type_constraint for other in others])
-    if supertyped_constraint:
+    if supertyped_constraint := self.type_constraint.most_specific_common_supertype(
+        [other.type_constraint for other in others]):
       return Parameter(self.name, self.kind, self.optional,
                        supertyped_constraint)
     else:
@@ -146,9 +145,7 @@ class Parameter(inspect.Parameter):
     return hash((self.name, self.kind, self.optional, self.type_constraint))
 
   def __repr__(self):
-    return ("Parameter(name=" + self.name + ", kind=" + str(self.kind) +
-            ", optional=" + repr(self.optional) + ", type_constraint=" +
-            repr(self.type_constraint) + ")")
+    return f"Parameter(name={self.name}, kind={str(self.kind)}, optional={repr(self.optional)}, type_constraint={repr(self.type_constraint)})"
 
   def __reduce__(self):
     return (self.__class__, (self.name, self.kind, self.optional,
@@ -225,11 +222,10 @@ class FunctionType(inspect.Signature):
                          follow_wrapped: bool = True) -> Dict[str, Any]:
     """Inspects and returns a dictionary of default values."""
     signature = super().from_callable(obj, follow_wrapped=follow_wrapped)
-    default_values = {}
-    for p in signature.parameters.values():
-      if p.default is not p.empty:
-        default_values[p.name] = p.default
-    return default_values
+    return {
+        p.name: p.default
+        for p in signature.parameters.values() if p.default is not p.empty
+    }
 
   @classmethod
   def from_proto(cls, proto: Any) -> "FunctionType":
@@ -264,8 +260,7 @@ class FunctionType(inspect.Signature):
         with_default_args[name] = value
 
     for arg_name in with_default_args:
-      constraint = self.parameters[arg_name].type_constraint
-      if constraint:
+      if constraint := self.parameters[arg_name].type_constraint:
         with_default_args[arg_name] = constraint._cast(  # pylint: disable=protected-access
             with_default_args[arg_name],
             trace_type.InternalCastContext(allow_specs=True),
@@ -285,7 +280,7 @@ class FunctionType(inspect.Signature):
         return False
 
     # Other must have all capture names of self.
-    if not all(name in other.captures for name in self.captures):
+    if any(name not in other.captures for name in self.captures):
       return False
 
     # Functions are contravariant upon the capture types.
@@ -370,9 +365,7 @@ class FunctionType(inspect.Signature):
         kwonly_parameters.append(p)
       else:
         sorted_parameters.append(p)
-    sorted_parameters = sorted_parameters + sorted(
-        kwonly_parameters, key=lambda p: p.name
-    )
+    sorted_parameters += sorted(kwonly_parameters, key=lambda p: p.name)
 
     flat = []
     for p in sorted_parameters:
@@ -466,7 +459,7 @@ def sanitize_arg_name(name: str) -> str:
   """
   # Replace non-alphanumeric chars with '_'
   swapped = "".join([c if c.isalnum() else "_" for c in name])
-  result = swapped if swapped[0].isalpha() else "arg_" + swapped
+  result = swapped if swapped[0].isalpha() else f"arg_{swapped}"
 
   global sanitization_warnings_given
   if name != result and sanitization_warnings_given < MAX_SANITIZATION_WARNINGS:
@@ -530,19 +523,24 @@ def canonicalize_to_monomorphic(
 
     elif poly_parameter.kind is Parameter.VAR_POSITIONAL:
       # Unbundle VAR_POSITIONAL into individual POSITIONAL_ONLY args.
-      for i, value in enumerate(arg):
-        parameters.append(
-            _make_validated_mono_param(f"{poly_parameter.name}_{i}", value,
-                                       Parameter.POSITIONAL_ONLY, type_context,
-                                       poly_parameter.type_constraint))
-
+      parameters.extend(
+          _make_validated_mono_param(
+              f"{poly_parameter.name}_{i}",
+              value,
+              Parameter.POSITIONAL_ONLY,
+              type_context,
+              poly_parameter.type_constraint,
+          ) for i, value in enumerate(arg))
     elif poly_parameter.kind is Parameter.VAR_KEYWORD:
       # Unbundle VAR_KEYWORD into individual KEYWORD_ONLY args.
-      for kwarg_name in sorted(arg.keys()):
-        parameters.append(
-            _make_validated_mono_param(kwarg_name, arg[kwarg_name],
-                                       Parameter.KEYWORD_ONLY, type_context,
-                                       poly_parameter.type_constraint))
+      parameters.extend(
+          _make_validated_mono_param(
+              kwarg_name,
+              arg[kwarg_name],
+              Parameter.KEYWORD_ONLY,
+              type_context,
+              poly_parameter.type_constraint,
+          ) for kwarg_name in sorted(arg.keys()))
     else:
       parameters.append(
           _make_validated_mono_param(name, arg, poly_parameter.kind,
@@ -584,11 +582,13 @@ def add_type_constraints(function_type: FunctionType, input_signature: Any,
 
     elif param.kind is param.VAR_POSITIONAL:
       # Convert into Positional Only args based on length of constraints.
-      for i in range(len(constraints)):
-        parameters.append(
-            Parameter(param.name + "_" + str(i), Parameter.POSITIONAL_ONLY,
-                      False, constraints.pop(0)))
-
+      parameters.extend(
+          Parameter(
+              f"{param.name}_{str(i)}",
+              Parameter.POSITIONAL_ONLY,
+              False,
+              constraints.pop(0),
+          ) for i in range(len(constraints)))
     elif (param.kind in [
         param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD, param.KEYWORD_ONLY
     ]):
@@ -626,33 +626,26 @@ def from_structured_signature(
     input_signature = ((), {})
 
   args, kwargs = input_signature
-  parameters = []
-
-  for i, arg in enumerate(args):
-    parameters.append(
-        Parameter(
-            "arg_" + str(i),
-            Parameter.POSITIONAL_ONLY,
-            False,
-            trace_type.from_value(
-                arg, trace_type.InternalTracingContext(is_legacy_signature=True)
-            ),
-        )
-    )
-
-  for name, kwarg in kwargs.items():
-    parameters.append(
-        Parameter(
-            sanitize_arg_name(name),
-            Parameter.KEYWORD_ONLY,
-            False,
-            trace_type.from_value(
-                kwarg,
-                trace_type.InternalTracingContext(is_legacy_signature=True),
-            ),
-        )
-    )
-
+  parameters = [
+      Parameter(
+          f"arg_{str(i)}",
+          Parameter.POSITIONAL_ONLY,
+          False,
+          trace_type.from_value(
+              arg,
+              trace_type.InternalTracingContext(is_legacy_signature=True)),
+      ) for i, arg in enumerate(args)
+  ]
+  parameters.extend(
+      Parameter(
+          sanitize_arg_name(name),
+          Parameter.KEYWORD_ONLY,
+          False,
+          trace_type.from_value(
+              kwarg,
+              trace_type.InternalTracingContext(is_legacy_signature=True),
+          ),
+      ) for name, kwarg in kwargs.items())
   return_type = trace_type.from_value(
       output_signature,
       trace_type.InternalTracingContext(is_legacy_signature=True),

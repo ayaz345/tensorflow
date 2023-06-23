@@ -124,7 +124,7 @@ def _restore_output_tensor_names(
           updating_inputs.append(input_name[1:])
           node.input.remove(input_name)
       for updating_input in updating_inputs:
-        node.input.append('^' + output_renaming_map[updating_input])
+        node.input.append(f'^{output_renaming_map[updating_input]}')
   return graph_def
 
 
@@ -177,13 +177,12 @@ def _validate_signatures(
         exported_graph.get_tensor_by_name(tensor_info.name)
       except KeyError as exc:
         try:
-          prefixed_name = signature_key + '_' + tensor_info.name
+          prefixed_name = f'{signature_key}_{tensor_info.name}'
           exported_graph.get_tensor_by_name(prefixed_name)
           tensor_info.name = prefixed_name
         except KeyError:
           raise ValueError(
-              'Cannot find the input tensor with name %s in the graph.'
-              % tensor_info.name
+              f'Cannot find the input tensor with name {tensor_info.name} in the graph.'
           ) from exc
 
     for tensor_info in signature_def.outputs.values():
@@ -191,13 +190,12 @@ def _validate_signatures(
         exported_graph.get_tensor_by_name(tensor_info.name)
       except KeyError as exc:
         try:
-          prefixed_name = signature_key + '_' + tensor_info.name
+          prefixed_name = f'{signature_key}_{tensor_info.name}'
           exported_graph.get_tensor_by_name(prefixed_name)
           tensor_info.name = prefixed_name
         except KeyError:
           raise ValueError(
-              'Cannot find the output tensor with name %s in the graph.'
-              % tensor_info.name
+              f'Cannot find the output tensor with name {tensor_info.name} in the graph.'
           ) from exc
 
   return signature_def_map
